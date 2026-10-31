@@ -17,6 +17,7 @@ DebugVerbs::DebugVerbs(CharCreateUI& character_ui, Town& in_game, std::optional<
     : character(character_ui), town(in_game), scene(loaded_scene) {
     add_fight();
     add_hero();
+    add_lab();
     add_level();
     add_net();
 }
@@ -32,7 +33,7 @@ std::string DebugVerbs::run(const Args& args) const {
             if (auto reply = verb->second(args)) return *std::move(reply);
         }
     }
-    return "err debug collision|automap|portals|objects|net|statpts <n>|skillpts <n>|wear|unid|level|blocked <x> <y>|warp <x> <y>|stat <id> <v>|quest <q>|skill left|right <id>|points <id> <n>\n";
+    return "err debug wp <index|all|level <id>>|collision|automap|portals|objects|net|statpts <n>|skillpts <n>|wear|unid|level|blocked <x> <y>|warp <x> <y>|stat <id> <v>|quest <q>|skill left|right <id>|points <id> <n>\n";
 }
 
 }  // namespace d2d::client

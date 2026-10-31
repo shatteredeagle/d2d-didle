@@ -49,8 +49,17 @@ public:
     // `err busy\n`), drain the connected client, dispatch complete lines.
     void pump();
 
+    // For verbs that finish later: a handler calls defer() and returns "";
+    // no further lines are dispatched until reply() sends the answer.
+    void defer();
+    void reply(const std::string& text);
+
     // Close socket, unlink file. Safe to call multiple times.
     void close();
+
+    // Block up to `ms` until the client (or a new client) has bytes to read, so an idle loop answers a command at once
+    // instead of at its next timer tick. No-op without a socket.
+    void wait(int ms);
 
     // True once listen() successfully bound.
     [[nodiscard]] bool active() const noexcept;

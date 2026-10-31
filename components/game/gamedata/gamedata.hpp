@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <bitset>
 #include <cmath>
 #include <cstddef>
@@ -51,6 +52,9 @@
 #include <vector>
 
 namespace d2d::game {
+
+// Set by --lockstep: poll_levels waits for pending level builds, so a wanted level is installed on the next tick whatever the wall time.
+inline std::atomic<bool> wait_for_level_builds{false};
 
 // A unit's collision (FUN_006484e0): its pattern from MonStats2 SizeX
 // (DAT_006eb3dc 0, 1, 1, 2; over 3: 1), 1 → 3 and 2 → 4 for a MonStats

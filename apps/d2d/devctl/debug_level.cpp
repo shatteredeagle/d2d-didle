@@ -239,8 +239,20 @@ void DebugVerbs::add_level() {
             out += std::format("{}\t{:.1f}\t{:.1f}\t{}\n", i, town.level->warps[i].x, town.level->warps[i].y, town.level->warps[i].destination);
         return out + "ok\n";
     });
-    add("wp", [this](const Args& args) -> Reply {   // activate waypoint index n
+    add("wp", [this](const Args& args) -> Reply {   // activate waypoint index n, `all`, or `level <id>` (the waypoint of that Levels.txt id)
         if (args.size() < 3) return std::nullopt;
+        if (args[2] == "all") {
+            for (int index = 0; index < 39; ++index) town.world.set_waypoint(index);
+            return std::string("ok 39\n");
+        }
+        if (args[2] == "level") {
+            if (!scene) return std::string("err no scene\n");
+            const int wanted = args.size() >= 4 ? std::atoi(args[3].c_str()) : -1;
+            for (const auto& act : scene->waypoint_levels)
+                for (const auto& row : act)
+                    if (row.level == wanted) { town.world.set_waypoint(row.waypoint); return std::format("ok {}\n", row.waypoint); }
+            return std::string("err no waypoint on that level\n");
+        }
         town.world.set_waypoint(std::atoi(args[2].c_str()));
         return std::string("ok\n");
     });

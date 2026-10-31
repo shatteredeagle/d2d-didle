@@ -422,6 +422,7 @@ struct Town {
     int   hovered_npc = -1;                // Level::npcs index under the cursor (last frame); <= -10: monster -10 - i
     std::uint32_t now_ms = 0;              // this frame's ms (devctl)   // shrines / chests used: when
     bool  player_walked = false;           // `walking` as of the last frame
+    bool skip_draw = false;                // lockstep stepping: run the frame, do not draw it
     bool alt_held = false;                 // devctl `debug alt on`: "Show Items" held
     StateClock state_clock;                // when each unit's states were first seen (their cast overlays)
     std::vector<d2d::rules::OverlayClock> alert_clocks;

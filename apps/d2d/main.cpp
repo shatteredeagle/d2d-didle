@@ -21,11 +21,13 @@
 #include "controls.hpp"
 #include "cursor.hpp"
 #include "devctl/verbs.hpp"
+#include "devctl_dump.hpp"
 #include "frontend.hpp"
 #include "gamepad.hpp"
 #include "keyconfig.hpp"
 #include "lobby.hpp"
 #include "gamepad_map.hpp"
+#include "lockstep.hpp"
 #include "roster.hpp"
 #include "load.hpp"
 #include "platform.hpp"
@@ -759,6 +761,8 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
 
     // Input, debug and state verbs for scripted tests (devctl/verbs.hpp).
     register_game_verbs(channel, win, screen, csu, character, town, scene, audio);
+    d2d::lockstep::register_verbs(channel);
+    register_dump_verb(channel, character, town, scene, screen);
 
     while (!quit) {
         // Signal-driven quit — Ctrl-C / SIGTERM. The atomic write from
@@ -811,6 +815,7 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
             else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) event.button.x -= view_off;
             else if (event.type == SDL_EVENT_MOUSE_WHEEL) event.wheel.mouse_x -= view_off;
             gamepads.handle_event(event);
+            click_mods_event(event);
             if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) { pad_in_use = false; mouse_took_over = true; }
             // The click keys (deviations.md improvement 15): a key or mouse button bound to
             // Attack / Use clicks the left button (held while it's held), Right-hand Skill
@@ -1062,7 +1067,8 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
         const std::uint32_t t_after_input = std::uint32_t(SDL_GetTicks());
         current_phase.store(std::uint32_t(MainPhase::Render),
                             std::memory_order_relaxed);
-        const auto now_ms = std::uint32_t(SDL_GetTicks() - start_ticks);
+        const auto now_ms = d2d::lockstep::advance(std::uint32_t(SDL_GetTicks() - start_ticks));
+        town.skip_draw = d2d::lockstep::skip_draw();
         // Level music and ambience belong to the game screen.
         if (screen != Screen::InGame && (audio.music.sound > 0 || audio.music_old.src)) {
             audio.stop(audio.music);
@@ -1544,7 +1550,7 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
         // is the classic macOS beachball trigger for SDL apps that
         // don't gate render on window visibility.
         const auto wflags = SDL_GetWindowFlags(win.window);
-        if (!(wflags & SDL_WINDOW_MINIMIZED)) {
+        if (!(wflags & SDL_WINDOW_MINIMIZED) && !d2d::lockstep::skip_draw()) {
             current_phase.store(std::uint32_t(MainPhase::Upload),
                                 std::memory_order_relaxed);
             SDL_UpdateTexture(win.texture, nullptr, framebuffer.data(), fb_width(framebuffer) * 4);
@@ -1554,6 +1560,11 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
                                 std::memory_order_relaxed);
             SDL_RenderPresent(win.renderer);
             crash_frame.update(framebuffer);
+        }
+        if (d2d::lockstep::clock().shot_fn && !d2d::lockstep::skip_draw()) {
+            auto fn = std::move(d2d::lockstep::clock().shot_fn);
+            d2d::lockstep::clock().shot_fn = nullptr;
+            channel.reply(fn());
         }
         const std::uint32_t t_after_present = std::uint32_t(SDL_GetTicks());
         if (++frame_count == 1) d2d::log::info("First frame presented at {} ms after launch.", d2d::log::ms());
@@ -1601,7 +1612,14 @@ int run_windowed(std::vector<std::uint8_t>& framebuffer,
         }
         current_phase.store(std::uint32_t(MainPhase::PaceDelay),
                             std::memory_order_relaxed);
-        pace_frame(frame_start_ms);
+        if (d2d::lockstep::pace()) {
+            // Lockstep idle frame: time is virtual, so there is nothing to pace. Sleep in poll() on the control socket
+            // instead of a timer: a command that arrives is dispatched at once (microseconds), not at the next tick.
+            if (d2d::lockstep::clock().lockstep) channel.wait(5);
+            else pace_frame(frame_start_ms);
+        }
+        click_mods_end_frame();
+        d2d::lockstep::after_frame(channel);
     }
     if (screen == Screen::InGame) town.save();   // quitting from the game saves it
     if (town.net_game) { town.net_game->leave(); write_save_back(); }   // a joined game: leave the host (0x69), don't just drop it
@@ -1688,7 +1706,11 @@ int main(int argc, char** argv) {
     bool        no_save = false;
     std::uint32_t map_seed = std::random_device{}();   // --seed fixes it (3 puts the Blood Moor east, townE1)
 
+    bool          opt_lockstep = false;
+    double        opt_time_scale = 1.0;
     CLI::App app{"d2d — Diablo II re-implementation"};
+    app.add_flag("--lockstep", opt_lockstep, "Game time moves only by the devctl `step <n>` verb");
+    app.add_option("--time-scale", opt_time_scale, "Virtual time runs this many times faster than real time (no frame pacing above 1)");
     app.add_option("--seed", map_seed, "Map seed (act 1 layout and the Blood Moor)");
     app.add_option("--devctl", devctl_path,
                    "Unix-socket dev-control channel path");
@@ -1764,6 +1786,9 @@ int main(int argc, char** argv) {
         d2d::log::error("--enable-crash-test requires a successful Sentry initialization");
         return 2;
     }
+    d2d::lockstep::clock().lockstep = opt_lockstep;
+    d2d::game::wait_for_level_builds = opt_lockstep;
+    d2d::lockstep::clock().scale = opt_time_scale;
     g_seed_fixed = app.count("--seed") > 0;
     g_map_seed = map_seed;
     // The MPQs: first hit wins, each a hard stop (install-detect.md,
@@ -1816,8 +1841,16 @@ int main(int argc, char** argv) {
         // Relative paths land in the user screenshots dir.
         const fs::path out = fs::path(args[1]).is_relative() ? shot_dir / args[1]
                                                              : fs::path(args[1]);
-        const auto written = d2d::screenshot::save_png(out, framebuffer, std::uint32_t(fb_width(framebuffer)), kScreenHeight);
-        return "ok " + std::to_string(written) + "\n";
+        const auto shoot = [&framebuffer, out] {
+            const auto written = d2d::screenshot::save_png(out, framebuffer, std::uint32_t(fb_width(framebuffer)), kScreenHeight);
+            return "ok " + std::to_string(written) + "\n";
+        };
+        if (d2d::lockstep::clock().lockstep) {   // the framebuffer is stale: draw the next frame, then answer
+            d2d::lockstep::clock().shot_fn = shoot;
+            channel.defer();
+            return std::string();
+        }
+        return shoot();
     });
     channel.on("quit", [&](const std::vector<std::string>&) {
         quit = true;

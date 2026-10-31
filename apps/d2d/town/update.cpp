@@ -434,8 +434,16 @@ auto Town::update(std::vector<std::uint8_t>& framebuffer, const Mouse& frame_mou
                 const auto click = item_cursor_command(*scene, character.items, held, std::max(character.character_class, 0),
                                                     { inv_open, stash_open, cube_open, belt_open, character.expansion, (SDL_GetModState() & SDL_KMOD_SHIFT) != 0 },
                                                     mouse.x, mouse.y);
-                if (click.cmd) net.send(*click.cmd);
-                item_click = click.consumed;
+                // LAB: ctrl + left click on a pack item sells it to the open store (FUN_0048ffe0, 0x33); the shift-click belt move is upstream's auto_belt.
+                const auto* to_cursor = !held && click.cmd ? std::get_if<cmd::ToCursor>(&*click.cmd) : nullptr;
+                const auto pack = to_cursor ? std::ranges::find(character.items, to_cursor->item, &d2d::d2s::Item::id) : character.items.end();
+                if (pack != character.items.end() && pack->location == d2d::d2s::item_location::kStored && pack->panel == d2d::d2s::item_panel::kInventory && (SDL_GetModState() & SDL_KMOD_CTRL)) {
+                    if (store.npc >= 0) net.send(cmd::Sell{ pack->id });
+                    item_click = true;
+                } else {
+                    if (click.cmd) net.send(*click.cmd);
+                    item_click = click.consumed;
+                }
             }
         }
         if (mouse.press_this_frame && over_belt && mouse.y >= first_box[2] && !item_click) belt_open = !belt_open;
@@ -858,7 +866,7 @@ auto Town::update(std::vector<std::uint8_t>& framebuffer, const Mouse& frame_mou
         });
         audio.pause_world(false);                  // a cinematic's hold ends
         audio.menu_paused = !net_game && (game_menu.open || controls.open);   // the world's sounds fade out (Audio::step_ducks)
-        draw(framebuffer, mouse, frame_ms);
+        if (!skip_draw) draw(framebuffer, mouse, frame_ms);
         // Screen Shot (FUN_004fa7a0): at most one a second, Screenshot%03d,
         // the first number free. d2d writes PNG in its screenshots folder
         // (deviations.md), game.exe JPEG in the game's.

@@ -46,8 +46,11 @@ void Channel::listen(const std::string& path) {
 }
 void Channel::on(std::string, Handler) {}
 void Channel::pump() {}
+void Channel::wait(int) {}
 void Channel::close() {}
 bool Channel::active() const noexcept { return false; }
+void Channel::defer() {}
+void Channel::reply(const std::string&) {}
 
 }  // namespace d2d::devctl
 
@@ -69,6 +72,7 @@ struct Channel::Impl {
     int          client_fd = -1;
     std::string  rx_buf;
     std::string  path;
+    bool         deferred = false;
     std::unordered_map<std::string, Handler> verbs;
 
     void close_client() {
@@ -77,6 +81,7 @@ struct Channel::Impl {
             client_fd = -1;
         }
         rx_buf.clear();
+        deferred = false;
     }
 };
 
@@ -94,6 +99,8 @@ Channel::~Channel() {
 void Channel::on(std::string verb, Handler handler) {
     impl_->verbs[std::move(verb)] = std::move(handler);
 }
+
+void Channel::defer() { impl_->deferred = true; }
 
 bool Channel::active() const noexcept { return impl_->listen_fd >= 0; }
 
@@ -113,6 +120,12 @@ static void write_all(int socket_fd, std::string_view text) {
         }
         break;   // client gone; caller will notice on next pump
     }
+}
+
+void Channel::reply(const std::string& text) {
+    if (!impl_->deferred) return;
+    impl_->deferred = false;
+    if (impl_->client_fd >= 0) write_all(impl_->client_fd, text);
 }
 
 void Channel::listen(const std::string& path) {
@@ -181,7 +194,7 @@ void Channel::pump() {
         // (SHUT_WR) after sending a batch, they still expect replies before
         // the server tears the fd down.
         std::size_t newline;
-        while (impl_->client_fd >= 0 &&
+        while (impl_->client_fd >= 0 && !impl_->deferred &&
                (newline = impl_->rx_buf.find('\n')) != std::string::npos) {
             std::string line = impl_->rx_buf.substr(0, newline);
             impl_->rx_buf.erase(0, newline + 1);
@@ -204,7 +217,7 @@ void Channel::pump() {
                     if (reply.empty() || reply.back() != '\n') reply += '\n';
                 }
             }
-            write_all(impl_->client_fd, reply);
+            if (!impl_->deferred) write_all(impl_->client_fd, reply);
         }
         // 64 KB is generous for a text protocol; anything larger is a bug.
         if (impl_->client_fd >= 0 && impl_->rx_buf.size() > 64 * 1024) {
@@ -213,7 +226,7 @@ void Channel::pump() {
         }
         // Only tear the fd down AFTER the buffered lines have been dispatched
         // and their replies flushed — the client already stopped writing.
-        if (remote_eof && impl_->client_fd >= 0) {
+        if (remote_eof && impl_->client_fd >= 0 && !impl_->deferred) {
             impl_->close_client();
         }
     }
@@ -235,6 +248,14 @@ void Channel::pump() {
             impl_->client_fd = client;
         }
     }
+}
+
+void Channel::wait(int ms) {
+    pollfd fds[2];
+    nfds_t n = 0;
+    if (impl_->listen_fd >= 0) fds[n++] = {impl_->listen_fd, POLLIN, 0};
+    if (impl_->client_fd >= 0) fds[n++] = {impl_->client_fd, POLLIN, 0};
+    if (n) (void)::poll(fds, n, ms);
 }
 
 void Channel::close() {

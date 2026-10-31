@@ -41,6 +41,7 @@ private:
     void add(const std::string& name, Verb verb);
     void add_fight();
     void add_hero();
+    void add_lab();   // the lab patch set: the sub-verbs only the private fork has
     void add_level();
     void add_net();
 

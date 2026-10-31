@@ -237,6 +237,7 @@ add_executable(d2d
     items.cpp
     load.cpp
     lobby.cpp
+    lockstep.cpp
     main.cpp
     netgame.cpp
     panels.cpp
@@ -252,6 +253,7 @@ add_executable(d2d
     devctl/debug.cpp
     devctl/debug_fight.cpp
     devctl/debug_hero.cpp
+    devctl/debug_lab.cpp
     devctl/debug_level.cpp
     devctl/debug_net.cpp
     town/ambient.cpp

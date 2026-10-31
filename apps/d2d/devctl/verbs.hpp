@@ -35,6 +35,44 @@
 
 namespace d2d::client {
 
+// Click modifiers (`click x y shift|ctrl|alt`, joined with + or ,). The game
+// reads SDL_GetModState() when it handles the click (shift on a pack item,
+// ctrl in a store), so the verb sets that state, and a custom event queued
+// after the button-up marks where main()'s loop puts it back once the frame
+// that handled the click is over. No modifier: nothing here runs.
+inline std::uint32_t& click_restore_event() { static std::uint32_t type = SDL_RegisterEvents(1); return type; }
+inline SDL_Keymod& click_saved_mods() { static SDL_Keymod saved = SDL_KMOD_NONE; return saved; }
+inline int& click_queued() { static int queued = 0; return queued; }          // markers pushed, not yet polled
+inline bool& click_polled() { static bool polled = false; return polled; }     // a marker was polled this frame
+// Parses the tokens after `x y`; nullopt names the unknown one in `bad`.
+inline std::optional<SDL_Keymod> parse_click_mods(const std::vector<std::string>& args, std::string& bad) {
+    SDL_Keymod mods = SDL_KMOD_NONE;
+    for (std::size_t i = 3; i < args.size(); ++i) {
+        std::string token = args[i];
+        for (char& c : token) if (c == '+') c = ',';
+        for (std::size_t at = 0; at <= token.size();) {
+            const auto end = std::min(token.find(',', at), token.size());
+            std::string name = token.substr(at, end - at);
+            at = end + 1;
+            for (char& c : name) c = char(std::tolower(static_cast<unsigned char>(c)));
+            if (name.empty()) continue;
+            if (name == "shift") mods |= SDL_KMOD_LSHIFT;
+            else if (name == "ctrl" || name == "control") mods |= SDL_KMOD_LCTRL;
+            else if (name == "alt") mods |= SDL_KMOD_LALT;
+            else { bad = name; return std::nullopt; }
+        }
+    }
+    return mods;
+}
+// In the event loop: the restore marker was polled.
+inline void click_mods_event(const SDL_Event& event) { if (event.type == click_restore_event()) { --click_queued(); click_polled() = true; } }
+// At the end of the frame that polled it.
+inline void click_mods_end_frame() {
+    if (!click_polled() || click_queued() > 0) return;
+    click_polled() = false;
+    SDL_SetModState(click_saved_mods());
+}
+
 // A screen's name in `state` replies.
 const char* screen_name(Screen screen) {
     switch (screen) {
@@ -58,7 +96,10 @@ const char* screen_name(Screen screen) {
 void register_game_verbs(d2d::devctl::Channel& channel, Window& win, Screen& screen, CharSelectUI& csu, CharCreateUI& character,
                          Town& town, std::optional<Scene>& scene, Audio& audio) {
     auto click_verb = [&window = win](const std::vector<std::string>& args, std::uint8_t button) {
-        if (args.size() < 3) return std::string("err click <x> <y>\n");
+        if (args.size() < 3) return std::string("err click <x> <y> [shift|ctrl|alt]\n");
+        std::string bad;
+        const auto mods = parse_click_mods(args, bad);
+        if (!mods) return "err unknown modifier " + bad + "\n";
         // Args are game pixels; queued events carry window coords and get
         // converted back by SDL_ConvertEventToRenderCoordinates on poll.
         float x = 0, y = 0;
@@ -66,6 +107,10 @@ void register_game_verbs(d2d::devctl::Channel& channel, Window& win, Screen& scr
         // Motion + down + up land in the next frame's poll. One frame is
         // enough: update_button and the slot picker both accept a press
         // and release in the same frame.
+        if (*mods != SDL_KMOD_NONE) {
+            if (click_queued() == 0 && !click_polled()) click_saved_mods() = SDL_GetModState();
+            SDL_SetModState(SDL_Keymod(click_saved_mods() | *mods));
+        }
         SDL_Event event{};
         event.motion = { .type = SDL_EVENT_MOUSE_MOTION, .windowID = SDL_GetWindowID(window.window), .x = x, .y = y };
         SDL_PushEvent(&event);
@@ -76,6 +121,12 @@ void register_game_verbs(d2d::devctl::Channel& channel, Window& win, Screen& scr
                           .down = type == SDL_EVENT_MOUSE_BUTTON_DOWN,
                           .clicks = 1, .x = x, .y = y };
             SDL_PushEvent(&event);
+        }
+        if (*mods != SDL_KMOD_NONE) {
+            event = {};
+            event.type = click_restore_event();
+            SDL_PushEvent(&event);
+            ++click_queued();
         }
         return std::string("ok\n");
     };
@@ -102,6 +153,11 @@ void register_game_verbs(d2d::devctl::Channel& channel, Window& win, Screen& scr
         else if (verb == "stat" && verb_args.size() >= 3) town.send(cmd::StatPoint{ int_arg(2, 0), int_arg(3, 1) });
         else if (verb == "skillpt" && verb_args.size() >= 3) town.send(cmd::SkillPoint{ int_arg(2, 0) });
         else if (verb == "select" && verb_args.size() >= 4) town.send(cmd::SelectSkill{ int_arg(2, 0), int_arg(3, 0) != 0 });
+        else if (verb == "tobelt" && verb_args.size() >= 3) town.send(cmd::ToBelt{ int_arg(2, 0) });   // the held item into belt box n (0..15)
+        else if (verb == "belt" && verb_args.size() >= 4 && verb_args[2] == "put") {   // belt put <item> [box]: a pack item to the belt (no shift-click in d2d)
+            town.send(cmd::ToCursor{ int_arg(3) });
+            town.send(cmd::ToBelt{ int_arg(4, 0) });
+        }
         else if (verb == "belt" && verb_args.size() >= 3) town.send(cmd::UseBelt{ int_arg(2, 0), verb_args.size() >= 4 && verb_args[3] == "merc" });
         else if (verb == "waypoint" && verb_args.size() >= 4) town.send(cmd::Waypoint{ int_arg(2), int_arg(3, 0) });
         else if (verb == "caravan" && verb_args.size() >= 3) town.send(cmd::Caravan{ int_arg(2) });
@@ -118,7 +174,7 @@ void register_game_verbs(d2d::devctl::Channel& channel, Window& win, Screen& scr
         else if (verb == "sell" && verb_args.size() >= 3) town.send(cmd::Sell{ int_arg(2) });
         else if (verb == "close") town.send(cmd::CloseTrade{});
         else return std::string("err cmd move <x> <y> | skill <id> <x> <y> [unit] [left] | interact <npc> | pickup <unit> | resurrect"
-                                " | stat <stat> [n] | skillpt <index> | select <skill> <left> | belt <slot> | waypoint <npc> <level>"
+                                " | stat <stat> [n] | skillpt <index> | select <skill> <left> | belt <slot> | belt put <item> [box] | tobelt <box> | waypoint <npc> <level>"
                                 " | caravan <npc> | imbue <npc> | hand <item> | grid <col> <row> | use <item> | said <npc> <string> | chat <npc|-1>"
                                 " | trade <npc> [gamble] | buy <stock> | sell <item> | close\n");
         return std::string("ok\n");

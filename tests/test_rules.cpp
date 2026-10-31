@@ -577,6 +577,9 @@ int main() {
     auto ground_item = [](const char* code, int quantity) { d2d::d2s::Item picked; picked.code = code; picked.quantity = quantity; picked.location = 3; return picked; };
     std::vector<d2d::d2s::Item> carried{ in_belt("hp1", 2), in_belt("mp1", 0) };
     auto picked = ground_item("hp2", -1);
+    // belt_box (a shift-click on a pack item, FUN_0054d520): the pickup's box, -1 where the item stays in the pack.
+    assert(belt_box(pick_tables, carried, picked, 8) == 6 && belt_box(pick_tables, carried, picked, 4) == 1);
+    assert(belt_box(pick_tables, carried, ground_item("isc", -1), 8) == -1 && belt_box(pick_tables, carried, ground_item("key", 1), 8) == -1);
     assert(pick_up(pick_tables, carried, picked, 10, 4, 8) == Pickup::kGone && carried.back().location == 2 && carried.back().column == 6);   // hp1's column, a row up
     picked = ground_item("hp2", -1);
     assert(pick_up(pick_tables, carried, picked, 10, 4, 4) == Pickup::kGone && carried.back().column == 1);   // one row: hp's full, the first free column

@@ -1300,7 +1300,7 @@ void GameData::want_level(int id) const {
 void GameData::poll_levels() const {
     if (!builder) return;
     for (auto job = builder->jobs.begin(); job != builder->jobs.end();)
-        if (job->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        if (wait_for_level_builds.load() || job->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             install_level(*this, job->first, finish_job(job->second, job->first));
             job = builder->jobs.erase(job);
         } else ++job;
