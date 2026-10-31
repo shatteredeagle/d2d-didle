@@ -44,6 +44,7 @@ private:
     void add_lab();   // the lab patch set: the sub-verbs only the private fork has
     void add_level();
     void add_net();
+    Reply give_carried(const Args& args);   // debug_lab.cpp: `give <code> pack|belt [box]`
 
     std::map<std::string, Verb, std::less<>> verbs_;
     CharCreateUI& character;

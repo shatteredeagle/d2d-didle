@@ -38,6 +38,7 @@ void DebugVerbs::add_hero() {
     });
     add("give", [this](const Args& args) -> Reply {   // an item <code> [quality] at the player's feet, the area level's
         if (args.size() < 3) return std::nullopt;
+        if (args.size() >= 4 && (args[3] == "pack" || args[3] == "belt")) return give_carried(args);   // straight into the pack / belt (debug_lab.cpp)
         town.world.loot.put({ .code = args[2], .quality = args.size() >= 4 ? std::atoi(args[3].c_str()) : 2 }, town.hero.player.x, town.hero.player.y, 30,
                             town.world.fight.spawning.game, town.world.now);
         return std::format("ok #{}\n", town.world.loot.ground.back().id);

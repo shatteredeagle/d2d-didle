@@ -604,6 +604,13 @@ auto Fight::hurt_side(std::span<Foe> side, std::uint32_t now_ms) -> void {
         if (!died && (big || (foe.hits > 0 && now_ms < actor->stunned)) && !attack_mode(actor->pmode) && actor->pmode != kModeBL) set_pmode(kModeGH, now_ms);
     }
 
+auto Fight::debug_blow(int damage, bool merc, std::uint32_t now_ms) -> void {
+        std::array<Foe, 2> foes{ player_foe(now_ms), merc_foe(now_ms) };
+        foes[merc ? 1 : 0].take({ .hit = true, .damage = damage, .physical = damage });
+        hurt_side(std::span(foes), now_ms);
+        if (!merc && !dead() && actor->pmode != kModeGH) set_pmode(kModeGH, now_ms);
+    }
+
 auto Fight::monster_auras(std::vector<Foe>& foes, std::uint32_t now_ms) -> void {
         for (auto& monster : monsters) monster.aura_dmg = monster.aura_th = 0;
         for (auto& aura_monster : monsters) {

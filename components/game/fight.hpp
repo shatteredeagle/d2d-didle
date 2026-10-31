@@ -489,6 +489,9 @@ struct Fight {
     [[nodiscard]] bool dead() const;
     // Life 0 and the death plays (DT, then DD).
     void die(std::uint32_t now_ms);
+    // Lab patch set (`debug hit`, `debug merc kill`): `damage` whole points as one landed monster blow
+    // through hurt_side (wear, life, death, the get-hit); the player always flinches (GH) unless it dies.
+    void debug_blow(int damage, bool merc, std::uint32_t now_ms);
 
     // The player as combat sees them: item stats summed like the char
     // panel's (worn, charms, what's socketed), the weapon and shield worn,
