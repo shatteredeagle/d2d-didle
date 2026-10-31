@@ -44,7 +44,8 @@ private:
     void add_lab();   // the lab patch set: the sub-verbs only the private fork has
     void add_level();
     void add_net();
-    Reply give_carried(const Args& args);   // debug_lab.cpp: `give <code> pack|belt [box]`
+    Reply give_carried(const Args& args);   // debug_lab.cpp: `give <code> pack|belt [box] [q<n>] [unid]`
+    Reply quest_record(const Args& args);   // debug_lab.cpp: `quest list|set|bit|join` (the `quest` verb of debug_fight.cpp hands these over)
 
     std::map<std::string, Verb, std::less<>> verbs_;
     CharCreateUI& character;

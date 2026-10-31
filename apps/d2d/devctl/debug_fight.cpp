@@ -115,6 +115,7 @@ void DebugVerbs::add_fight() {
     });
     add("quest", [this](const Args& args) -> Reply {   // mark Act quest <q> done (bit 0), active difficulty
         if (args.size() < 3) return std::nullopt;
+        if (args[2] == "list" || args[2] == "set" || args[2] == "bit" || args[2] == "join") return quest_record(args);   // the record verbs (debug_lab.cpp)
         const int quest = std::atoi(args[2].c_str()), bit = quest * 16;
         if (quest < 0 || quest >= 48) return std::string("err quest 0..47\n");
         auto& header = town.hero.character.header;

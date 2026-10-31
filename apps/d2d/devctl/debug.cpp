@@ -33,7 +33,7 @@ std::string DebugVerbs::run(const Args& args) const {
             if (auto reply = verb->second(args)) return *std::move(reply);
         }
     }
-    return "err debug wp <index|all|level <id>>|collision|automap|portals|objects|net|statpts <n>|skillpts <n>|wear|unid|level|blocked <x> <y>|warp <x> <y>|act <1-5>|hit <dmg>|merc hire <type>|kill|revive|durability <slot|all> <v>|belt clear|unequip <slot|belt>|give <code> pack|belt|stat <id> <v>|quest <q>|skill left|right <id>|points <id> <n>\n";
+    return "err debug wp <index|all|level <id>>|collision|automap|portals|objects|net|statpts <n>|skillpts <n>|wear|unid|level|blocked <x> <y>|warp <x> <y>|act <1-5>|help|hit <dmg>|merc hire <type>|kill|revive|hurt <dmg>|pin on|off|spawn <monster> [n] [champion|unique]|quest list|set|bit|join|durability <slot|all> <v>|belt clear|unequip <slot|belt>|give <code> pack|belt|stat <id> <v>|quest <q>|skill left|right <id>|points <id> <n>\n";
 }
 
 }  // namespace d2d::client

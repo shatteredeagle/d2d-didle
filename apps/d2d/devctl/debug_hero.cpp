@@ -39,9 +39,13 @@ void DebugVerbs::add_hero() {
     add("give", [this](const Args& args) -> Reply {   // an item <code> [quality] at the player's feet, the area level's
         if (args.size() < 3) return std::nullopt;
         if (args.size() >= 4 && (args[3] == "pack" || args[3] == "belt")) return give_carried(args);   // straight into the pack / belt (debug_lab.cpp)
-        town.world.loot.put({ .code = args[2], .quality = args.size() >= 4 ? std::atoi(args[3].c_str()) : 2 }, town.hero.player.x, town.hero.player.y, 30,
+        const bool unid = std::ranges::find(args.begin() + 3, args.end(), std::string("unid")) != args.end();   // `give <code> [quality] [unid]`: not identified, whatever the quality
+        const int quality = args.size() >= 4 && args[3] != "unid" ? std::atoi(args[3].c_str()) : 2;
+        if (quality < 0 || quality > 8) return std::string("err quality 0..8 (0 by the item level, 1 low, 2 normal, 3 superior, 4 magic, 5 set, 6 rare, 7 unique, 8 crafted)\n");
+        town.world.loot.put({ .code = args[2], .quality = quality }, town.hero.player.x, town.hero.player.y, 30,
                             town.world.fight.spawning.game, town.world.now);
-        return std::format("ok #{}\n", town.world.loot.ground.back().id);
+        if (unid) town.world.loot.ground.back().item.identified = false;
+        return std::format("ok #{} quality={} identified={}\n", town.world.loot.ground.back().id, quality, town.world.loot.ground.back().item.identified ? 1 : 0);
     });
     add("itemat", [this](const Args& args) -> Reply {   // where carried item <id> sits on screen with the inventory open: its box's middle
         if (args.size() < 3 || !scene) return std::nullopt;
