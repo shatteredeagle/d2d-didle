@@ -18,6 +18,7 @@ DebugVerbs::DebugVerbs(CharCreateUI& character_ui, Town& in_game, std::optional<
     add_fight();
     add_hero();
     add_lab();
+    add_missiles();
     add_level();
     add_net();
 }

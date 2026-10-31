@@ -255,6 +255,7 @@ add_executable(d2d
     devctl/debug_hero.cpp
     devctl/debug_lab.cpp
     devctl/debug_level.cpp
+    devctl/debug_missiles.cpp
     devctl/debug_net.cpp
     town/ambient.cpp
     town/controls.cpp
