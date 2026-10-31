@@ -359,6 +359,7 @@ void load_monsters(GameData& game_data, const d2d::mpq::Stack& mpqs) {
         }
         for (int i = 0; i < 3; ++i) missile_info.elen_lev[std::size_t(i)] = number("ELevLen" + std::to_string(i + 1));
         missile_info.cel_file = missiles_table.get(row_index, "CelFile");
+        missile_info.id = number("Id");   // Missiles.txt Id (debug missiles)
         game_data.missiles.emplace(name, std::move(missile_info));
     }
     for (auto& [name, missile_info] : game_data.missiles)

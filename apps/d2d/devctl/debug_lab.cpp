@@ -92,7 +92,7 @@ void DebugVerbs::add_lab() {
             { "hit", "hit <damage>: one monster blow on the player (life, wear, death, get-hit)" },
             { "kill", "kill [<keep>] [spare <MonStats id>] [within <cells>]: kill the level's monsters" },
             { "merc", "merc hire <type>|kill|revive|hurt <damage>: the merc (no gold)" },
-            { "missiles", "missiles: one row per live missile: unit, id, x, y, dx, dy (cells/s), speed, owner type, owner unit, ttl ticks, friendly" },
+            { "missiles", "missiles: one row per live missile: unit, id, x, y, dx, dy (unit vector), speed (cells/s), owner type, owner unit, ttl ticks, friendly, name" },
             { "pin", "pin on [radius 3..8 subtiles]|off|status: wall the player into a pocket (collision ring), or take it down" },
             { "quest", "quest <q> [show|reset]: done (bit 0) | quest list: nonzero records | quest set <q> <flags 0..0xffff> | quest bit <q> <0..15> on|off | quest join: re-run the act's join" },
             { "spawn", "spawn <MonStats id|row> [n 1..20] [near] [champion|unique [mod ids]]: monsters round the player (field level)" },
