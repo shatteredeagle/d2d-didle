@@ -322,7 +322,7 @@ DebugVerbs::Reply DebugVerbs::quest_record(const Args& args) {
 }
 
 // `give <code> pack|belt [box]`: a new normal item straight into the carried grid, as a pickup would place it
-// (the pack's first free spot by the player's search; the belt's rules::belt_slot box, or the box asked for).
+// (the pack's first free spot by the player's search; the belt's rules::belt_box box, or the box asked for).
 DebugVerbs::Reply DebugVerbs::give_carried(const Args& args) {
     if (!scene || !town.world.game_data) return std::nullopt;
     auto& items = town.hero.character.items;
@@ -342,7 +342,7 @@ DebugVerbs::Reply DebugVerbs::give_carried(const Args& args) {
     const auto& game_data = *town.world.game_data;
     if (args[3] == "belt") {
         const int boxes = game_data.belts[std::size_t(d2d::game::belt_index(game_data, items))].boxes;
-        const int slot = box >= 0 ? box : d2d::rules::belt_slot(scene->rules, items, item, boxes);
+        const int slot = box >= 0 ? box : d2d::rules::belt_box(scene->rules, items, item, boxes);
         const bool taken = std::ranges::any_of(items, [&](const auto& carried) { return carried.location == d2d::d2s::item_location::kBelt && carried.column == slot; });
         if (slot < 0 || slot >= boxes || taken) return std::string("err no belt box\n");
         item.location = d2d::d2s::item_location::kBelt; item.column = slot; item.row = 0; item.panel = 0; item.slot = 0;
