@@ -159,18 +159,6 @@ void DebugVerbs::add_fight() {
         fight.release(std::size_t(best), town.world_ms);   // the World's clock, as its own releases
         return std::string("ok ") + std::to_string(fight.missiles.size()) + "\n";
     });
-    add("states", [this](const Args& /*args*/) -> Reply {   // the player's buffs; each cursed / cried monster
-        std::string out = std::format("absorb={} maxlife={} maxmana={} def={} buffs=", town.hero.absorb_pool,
-                                      character.stats.fixed(d2d::d2s::kMaxLife), character.stats.fixed(d2d::d2s::kMaxMana), town.hero.player_combat.defense);
-        for (const auto& state : town.hero.self_states) out += std::format("{}:{},", state.skill, state.level);
-        out += "\n";
-        for (const auto& monster : town.fight.monsters)
-            if (monster.curse.skill >= 0 || monster.cry.skill >= 0 || monster.stun_until > 0)
-                out += std::format("{} hp={} curse={} cry={} dmg%={} speed%={} reflect%={} align={} stun={} ai={}{} afraid={}\n", monster.npc.name, monster.hit_points,
-                                   monster.curse.skill, monster.cry.skill, monster.dmg_pct, monster.speed_pct, monster.reflect_pct, monster.align,
-                                   monster.stun_until, monster.special, monster.other ? "/other" : "", int(monster.afraid));
-        return out + "ok\n";
-    });
 }
 
 }  // namespace d2d::client

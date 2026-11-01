@@ -43,6 +43,7 @@ private:
     void add_hero();
     void add_lab();   // the lab patch set: the sub-verbs only the private fork has
     void add_missiles();   // the lab patch set: debug missiles
+    void add_skills();     // the lab patch set: debug cast, mana full, mon set, states set|clear (skill drills)
     void add_level();
     void add_net();
     Reply give_carried(const Args& args);   // debug_lab.cpp: `give <code> pack|belt [box] [q<n>] [unid]`
