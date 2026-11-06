@@ -32,6 +32,10 @@ The verbs are in `apps/d2d/devctl/verbs.hpp`; `debug`'s sub-verbs are one
 handler each in `apps/d2d/devctl/debug_*.cpp` (fight, hero, level, net), in
 name order. A new sub-verb goes in its area's file where its name sorts.
 
+### `--lab-verbs` (lab patch set, default off)
+
+Without `--lab-verbs` only the read-only `debug` sub-verbs answer: `players level warps portals presets objects corpses layout nearby grid blocked attack passives itemat missiles help tomb unbuilt pets critters net roster laid light walls tiles`, bare `debug states`, `debug quest <q> show` and `debug quest list`. Every other `debug` sub-verb (clearinv, give, stat, statpts, skillpts, points, equip, unequip, belt, durability, wear, unid, skill, spawn, goto, warp, wp, act, enter, hit, kill, die, merc, pin, cast, mana, mon, states set|clear, quest writers, difficulty, boss, charges, release, day, rain, alt, collision, automap, relevel, operate, chat, typing, netsend, tradestate, party, ...) answers `err lab verbs off: debug <sub> needs d2d --lab-verbs`. The list is an allow-list in `DebugVerbs::read_only` (`devctl/debug.cpp`): a new sub-verb is gated until listed there. Not gated: `ping state info clock dump screenshot step lockstep timescale`, `cmd`, `click key move` and the other input verbs, `save`, `quit`. Test: `tests/lab_verbs_d2d.py`.
+
 | verb                        | reply                  | notes                                                     |
 |-----------------------------|------------------------|-----------------------------------------------------------|
 | `screenshot <path>`         | `ok <bytes>`           | Writes current framebuffer to `<path>` as PNG. Relative paths land in `<user dir>/screenshots/` (e.g. `~/Library/Preferences/d2d/screenshots/`). |

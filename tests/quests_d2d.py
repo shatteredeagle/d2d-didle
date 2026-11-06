@@ -52,7 +52,7 @@ def log_text():
         return text.read()
 
 
-proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path, "--start-screen", "ingame",
+proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path, "--lab-verbs", "--start-screen", "ingame",
                          "--start-class", "0", "--start-name", "Quester", "--no-save", "--no-video"], env=env, stdout=log, stderr=log)
 
 

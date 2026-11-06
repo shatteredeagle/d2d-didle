@@ -58,7 +58,7 @@ env = dict(os.environ, HOME=home)
 env.pop("D2_MPQ_DIR", None)   # --data wins anyway; keep the env honest
 # --scale 2: every click below is in 800x600 game pixels, so the whole run
 # also checks window<->game coordinate conversion.
-proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path,
+proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path, "--lab-verbs",
                          "--start-screen", "charselect", "--scale", "2"], env=env)
 
 def cmd(line):
@@ -511,7 +511,7 @@ try:
 
     # A new character (the char-create screen, CharStats.txt's start): made
     # and saved at once; it enters at level 1 and its file is there.
-    proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path, "--start-screen", "charcreate",
+    proc = subprocess.Popen([d2d, "--headless", "--seed", "3", "--data", data, "--devctl", sock_path, "--lab-verbs", "--start-screen", "charcreate",
                              "--start-class", "1", "--start-name", "Newbie", "--scale", "2"], env=env)
     for _ in range(300):              # 30 s: a freshly linked binary's first start can be slow
         if os.path.exists(sock_path):

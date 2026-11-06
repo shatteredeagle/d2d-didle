@@ -62,6 +62,9 @@ find_package(Python3 COMPONENTS Interpreter)
 if (Python3_Interpreter_FOUND)
     add_test(NAME smoke_d2d
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/smoke_d2d.py $<TARGET_FILE:d2d>)
+    # --lab-verbs (default off) gates the setup / cheat debug verbs.
+    add_test(NAME lab_verbs_d2d
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/lab_verbs_d2d.py $<TARGET_FILE:d2d>)
     # Local co-op over devctl's virtual pads (docs/design/local-coop.md).
     add_test(NAME coop_d2d
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/coop_d2d.py $<TARGET_FILE:d2d>)
@@ -78,7 +81,7 @@ if (Python3_Interpreter_FOUND)
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/quests_d2d.py $<TARGET_FILE:d2d> ${act})
         list(APPEND d2d_quest_tests quests_act${act})
     endforeach()
-    set_tests_properties(smoke_d2d coop_d2d coop_lobby_d2d pad_use_d2d ${d2d_quest_tests}
+    set_tests_properties(smoke_d2d lab_verbs_d2d coop_d2d coop_lobby_d2d pad_use_d2d ${d2d_quest_tests}
                          PROPERTIES SKIP_RETURN_CODE ${d2d_skip_code})
 endif()
 
@@ -101,6 +104,6 @@ endif()
 if (d2d_test_env)
     set_tests_properties(${d2d_cpp_tests} PROPERTIES ENVIRONMENT "${d2d_test_env}")
     if (TARGET d2d AND Python3_Interpreter_FOUND)
-        set_tests_properties(smoke_d2d coop_d2d coop_lobby_d2d pad_use_d2d ${d2d_quest_tests} PROPERTIES ENVIRONMENT "${d2d_test_env}")
+        set_tests_properties(smoke_d2d lab_verbs_d2d coop_d2d coop_lobby_d2d pad_use_d2d ${d2d_quest_tests} PROPERTIES ENVIRONMENT "${d2d_test_env}")
     endif()
 endif()

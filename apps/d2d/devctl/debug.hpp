@@ -34,8 +34,16 @@ public:
     DebugVerbs& operator=(DebugVerbs&&) = delete;
     ~DebugVerbs() = default;
 
-    // `debug <sub-verb> ...`: the sub-verb's reply, else the usage line.
+    // `debug <sub-verb> ...`: the sub-verb's reply, else the usage line. Without
+    // --lab-verbs only the read-only sub-verbs (read_only) run; every other one
+    // (the setup / cheat / lab verbs, and any added later) answers `err lab verbs off`.
     [[nodiscard]] std::string run(const Args& args) const;
+
+    // `--lab-verbs` (default off). Set once in main() before the channel listens.
+    static void set_lab_verbs(bool on);
+    [[nodiscard]] static bool lab_verbs();
+    // Whether `debug <args...>` only reads (the allow-list the gate leaves open).
+    [[nodiscard]] static bool read_only(const Args& args);
 
 private:
     void add(const std::string& name, Verb verb);

@@ -81,7 +81,7 @@ def main():
     sock.unlink(missing_ok=True)
     a.out.unlink(missing_ok=True)
 
-    cmd = [str(a.d2d), "--data", str(a.data), "--devctl", str(sock), "--no-save", "--no-video",
+    cmd = [str(a.d2d), "--data", str(a.data), "--devctl", str(sock), "--lab-verbs", "--no-save", "--no-video",
            "--start-screen", a.screen, "--start-class", str(a.cls), "--start-name", "Smoke"]
     if not a.windowed:
         cmd.append("--headless")

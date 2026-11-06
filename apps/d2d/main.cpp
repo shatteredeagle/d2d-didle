@@ -1709,6 +1709,9 @@ int main(int argc, char** argv) {
     bool          opt_lockstep = false;
     double        opt_time_scale = 1.0;
     CLI::App app{"d2d — Diablo II re-implementation"};
+    bool opt_lab_verbs = false;
+    app.add_flag("--lab-verbs", opt_lab_verbs,
+                 "Enable the setup / cheat `debug` verbs of the lab patch set (clearinv, give, stat, goto, spawn, ...); off: only the read-only debug verbs answer");
     app.add_flag("--lockstep", opt_lockstep, "Game time moves only by the devctl `step <n>` verb");
     app.add_option("--time-scale", opt_time_scale, "Virtual time runs this many times faster than real time (no frame pacing above 1)");
     app.add_option("--seed", map_seed, "Map seed (act 1 layout and the Blood Moor)");
@@ -1773,6 +1776,7 @@ int main(int argc, char** argv) {
     } catch (const CLI::ParseError& error) {
         return app.exit(error);
     }
+    d2d::client::DebugVerbs::set_lab_verbs(opt_lab_verbs);
     if (enable_crash_test && (!send_crash_reports || devctl_path.empty())) {
         d2d::log::error("--enable-crash-test requires --send-crash-reports and --devctl <path>");
         return 2;

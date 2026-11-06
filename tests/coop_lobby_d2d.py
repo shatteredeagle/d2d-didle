@@ -34,7 +34,7 @@ if patch and os.path.exists(patch):
         f.write(f"patch = {patch}\n")
 
 sock_path = os.path.join(tempfile.gettempdir(), f"d2d_lobby_{os.getpid()}.sock")
-proc = subprocess.Popen([d2d, "--headless", "--no-save", "--seed", "3", "--data", data, "--devctl", sock_path, "--start-screen", "charselect"],
+proc = subprocess.Popen([d2d, "--headless", "--no-save", "--seed", "3", "--data", data, "--devctl", sock_path, "--lab-verbs", "--start-screen", "charselect"],
                         env=dict(os.environ, HOME=home))
 atexit.register(lambda: proc.poll() is None and proc.kill())
 
