@@ -211,7 +211,7 @@ public:
 
 private:
     [[nodiscard]] std::string compute_hash() const {
-        std::uint64_t h = 1469598103934665603ull;
+        std::uint64_t h = 14695981039346656037ull;
         auto feed = [&](std::string_view s) { for (unsigned char c : s) { h ^= c; h *= 1099511628211ull; } };
         for (const auto& f : fragments_) {
             feed(lower(f.file)); feed(std::string_view("\0", 1)); feed(f.text); feed(std::string_view("\0", 1));

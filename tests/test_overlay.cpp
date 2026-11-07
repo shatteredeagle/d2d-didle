@@ -9,6 +9,8 @@
 #include <cassert>
 #include <cstdio>
 #include <exception>
+#include <filesystem>
+#include <fstream>
 #include <string>
 
 using d2d::mpq::overlay::merge;
@@ -49,6 +51,15 @@ int main() try {
     assert(throws(base, "index\tcode\nA\tx\nA\ty\n", "uniqueitems", ":3:"));      // duplicate key
     assert(throws(base, "", "uniqueitems", "empty fragment"));
 
+    // Hash pinned against the Go side (internal/overlay TestHashPinned): FNV-1a 64 of "a.txt\0X\0".
+    {
+        namespace fs = std::filesystem;
+        const fs::path dir = fs::temp_directory_path() / "d2d_test_overlay_hash";
+        fs::create_directories(dir / "excel");
+        std::ofstream(dir / "excel" / "A.txt", std::ios::binary) << "X";
+        assert(d2d::mpq::overlay::Overlay(dir).hash8() == "7af2328b");
+        fs::remove_all(dir);
+    }
     // Hash is stable and the tag text is exact.
     assert(d2d::mpq::overlay::Overlay().tag() == "overlay=off");
     std::puts("ok");
