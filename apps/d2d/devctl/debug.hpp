@@ -49,7 +49,7 @@ private:
     void add(const std::string& name, Verb verb);
     void add_fight();
     void add_hero();
-    void add_lab();   // the lab patch set: the sub-verbs only the private fork has
+    void add_lab();   // the lab patch set: the sub-verbs only the d.idle fork has
     void add_missiles();   // the lab patch set: debug missiles
     void add_skills();     // the lab patch set: debug cast, mana full, mon set, states set|clear (skill drills)
     void add_level();

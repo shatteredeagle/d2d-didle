@@ -1,4 +1,5 @@
-// Local patch P2 (private fork): virtual clock, lockstep stepping, time scale.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Local patch P2 (d.idle fork): virtual clock, lockstep stepping, time scale.
 // Everything the main loop needs is here; main.cpp calls it at four seams.
 #pragma once
 

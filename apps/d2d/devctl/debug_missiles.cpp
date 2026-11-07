@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// devctl `debug missiles` of the lab patch set (the private fork only): the live missiles, read only.
+// devctl `debug missiles` of the lab patch set (the d.idle fork only): the live missiles, read only.
 #include "debug.hpp"
 
 #include "ai.hpp"

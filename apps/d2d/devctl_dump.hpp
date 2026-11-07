@@ -1,4 +1,5 @@
-// Local patch P1 (private fork): `dump [sections]` returns one line of JSON.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Local patch P1 (d.idle fork): `dump [sections]` returns one line of JSON.
 // Read-only. Sections: player, stats, skills, items, quests, ui, merc, time.
 // Header-only on purpose: it is included once, right after devctl/verbs.hpp,
 // and uses the same locals the other verbs capture.

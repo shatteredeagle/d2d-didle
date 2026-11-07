@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// devctl `debug` sub-verbs of the lab patch set (the private fork only, never an upstream PR) for the live skill
+// devctl `debug` sub-verbs of the lab patch set (the d.idle fork only, never an upstream PR) for the live skill
 // drills: `mana full`, `states set|clear`, `mon set`, `cast`. Test cheats: the harness ledgers every call before
 // it is sent. Each one refuses unless this is an offline --no-save game (no character store, no joined host), and
 // every reply says what changed.

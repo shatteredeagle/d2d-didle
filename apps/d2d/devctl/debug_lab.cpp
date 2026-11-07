@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// devctl `debug` sub-verbs of the lab patch set (the private fork's only):
+// devctl `debug` sub-verbs of the lab patch set (the d.idle fork's only):
 // level layout reads for the navigation tests, and the test cheats of the drills
 // (act, belt, durability, help, hit, merc hire|kill|revive|hurt, pin, quest list|set|bit|join, spawn,
 // unequip, give <code> pack|belt [q<n>] [unid]). In name order.
