@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // test-links:
+// test-includes: components/mpq
 // The table overlay merge (components/mpq/overlay.hpp) on a tiny fixture:
 // replace by key, append, empty cell keeps the base, append-only tables,
 // and every malformed fragment throws with the file and line.
