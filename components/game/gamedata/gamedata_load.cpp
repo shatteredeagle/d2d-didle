@@ -1568,7 +1568,7 @@ void load_tables(GameData& game_data, const d2d::mpq::Stack& mpqs) {
 // no hash list. 1.14d's tables have these row counts (txt::Table, the
 // "Expansion" separators dropped); a modded patch_d2.mpq (more uniques,
 // runewords, recipes) or an older one differs. Warns, doesn't refuse.
-void check_patch_layer(const d2d::mpq::Stack& mpqs) {
+void check_patch_layer(const d2d::mpq::Stack& mpqs) {   // overlay-appended rows are expected, not a mod warning
     static constexpr std::pair<const char*, std::size_t> kRows[] = {
         { R"(data\global\excel\ItemStatCost.txt)", 359 },
         { R"(data\global\excel\UniqueItems.txt)", 401 },
@@ -1577,7 +1577,8 @@ void check_patch_layer(const d2d::mpq::Stack& mpqs) {
     for (const auto& [path, rows] : kRows) {
         const auto bytes = mpqs.try_read(path);
         const std::size_t count = bytes ? d2d::txt::Table(*bytes).size() : 0;
-        if (count != rows)
+        const std::size_t expected = rows + mpqs.overlay_rows_added(path);
+        if (count != expected)
             d2d::log::warn("patch layer doesn't look like 1.14d: {} has {} rows, 1.14d's has {} (a mod, or another version)",
                            path, count, rows);
     }
@@ -1655,6 +1656,12 @@ std::optional<GameData> open_game_data(const fs::path& data_dir, const fs::path&
             }
         for (const char* name : { "d2xtalk.mpq", "d2speech.mpq", "d2sfx.mpq", "d2xmusic.mpq", "d2music.mpq", "d2xvideo.mpq", "d2video.mpq" })
             if (!find(name)) d2d::log::warn("no {} in {}; its sounds or videos are skipped", name, data_dir.string());
+        // d.idle mode (--overlay-dir): our row fragments, merged before anything reads a table.
+        if (const auto& dir = d2d::mpq::overlay::configured_dir(); !dir.empty()) {
+            d2d::log::info("Overlay directory: {}", dir.string());
+            mpqs.set_overlay(d2d::mpq::overlay::Overlay(dir));
+            d2d::log::info("  {}", mpqs.overlay_tag());
+        }
         if (patched) check_patch_layer(mpqs);
 
         GameData game_data;

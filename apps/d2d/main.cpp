@@ -1712,6 +1712,9 @@ int main(int argc, char** argv) {
     bool opt_lab_verbs = false;
     app.add_flag("--lab-verbs", opt_lab_verbs,
                  "Enable the setup / cheat `debug` verbs of the lab patch set (clearinv, give, stat, goto, spawn, ...); off: only the read-only debug verbs answer");
+    std::string opt_overlay_dir;
+    app.add_option("--overlay-dir", opt_overlay_dir,
+                   "d.idle mode: merge our row fragments from <dir>/excel/*.txt into the game tables (default off: vanilla tables; a malformed fragment stops startup)");
     app.add_flag("--lockstep", opt_lockstep, "Game time moves only by the devctl `step <n>` verb");
     app.add_option("--time-scale", opt_time_scale, "Virtual time runs this many times faster than real time (no frame pacing above 1)");
     app.add_option("--seed", map_seed, "Map seed (act 1 layout and the Blood Moor)");
@@ -1777,6 +1780,7 @@ int main(int argc, char** argv) {
         return app.exit(error);
     }
     d2d::client::DebugVerbs::set_lab_verbs(opt_lab_verbs);
+    d2d::mpq::overlay::configured_dir() = opt_overlay_dir;
     if (enable_crash_test && (!send_crash_reports || devctl_path.empty())) {
         d2d::log::error("--enable-crash-test requires --send-crash-reports and --devctl <path>");
         return 2;
@@ -1835,10 +1839,11 @@ int main(int argc, char** argv) {
     std::atomic<std::uint64_t> frame_count{0};
     std::atomic<bool>          quit{false};
 
+    const std::string overlay_tag = scene->mpqs.overlay_tag();   // "overlay=<hash8>" or "overlay=off"
     d2d::devctl::Channel channel;
     channel.on("info", [&](const std::vector<std::string>&) {
         return "w=" + std::to_string(fb_width(framebuffer)) + " h=" + std::to_string(kScreenHeight)
-             + " frame=" + std::to_string(frame_count.load()) + "\nok\n";
+             + " frame=" + std::to_string(frame_count.load()) + " " + overlay_tag + "\nok\n";
     });
     channel.on("screenshot", [&](const std::vector<std::string>& args) {
         if (args.size() < 2) return std::string("err screenshot <path>\n");

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "bnpatch.hpp"
+#include "overlay.hpp"
 
 #include <log.hpp>
 
@@ -23,6 +24,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -234,6 +236,34 @@ struct Verified {
 
 class Stack {
 public:
+    // d.idle mode: merge the overlay's row fragments into the excel tables
+    // they name (overlay.hpp). Merges eagerly, so a fragment that does not fit
+    // its table throws here (a fatal startup error), never at first use.
+    // Call after the archives are pushed. Logs one line per fragment.
+    void set_overlay(overlay::Overlay set) {
+        auto state = std::make_shared<OverlayState>();
+        for (const auto& fragment : set.fragments()) {
+            const std::string path = "data\\global\\excel\\" + fragment.file;
+            const auto base = find(path);
+            if (!base) throw std::runtime_error("overlay " + fragment.file + ": base table " + path + " not found");
+            const std::string_view base_text(reinterpret_cast<const char*>(base->data()), base->size());
+            auto merged = overlay::merge(base_text, fragment.text, fragment.table_lower, fragment.file);
+            d2d::log::info("  Overlay: {} replaced {} rows, appended {}", fragment.file, merged.replaced, merged.appended);
+            state->added[Archive::key(path)] = merged.appended;
+            state->tables[Archive::key(path)] = overlay::to_bytes(merged.text);
+        }
+        state->set = std::move(set);
+        overlay_ = std::move(state);
+    }
+    // "overlay=<hash8>" or "overlay=off" (the control channel's info).
+    [[nodiscard]] std::string overlay_tag() const { return overlay_ ? overlay_->set.tag() : "overlay=off"; }
+    // Rows the overlay appended to a table (0 when none): the vanilla row-count check allows for them.
+    [[nodiscard]] std::size_t overlay_rows_added(std::string_view name) const {
+        if (!overlay_) return 0;
+        const auto at = overlay_->added.find(Archive::key(name));
+        return at == overlay_->added.end() ? 0 : at->second;
+    }
+
     // Highest priority first. D2 pushes patch_d2.mpq before base archives.
     void push(const std::filesystem::path& path) { archives_.emplace_back(path); sources_.emplace_back(path, false); }
     void push_installer(const std::filesystem::path& path) {
@@ -245,6 +275,7 @@ public:
     [[nodiscard]] Stack reopen() const {
         Stack copy;
         for (const auto& [path, inst] : sources_) inst ? copy.push_installer(path) : copy.push(path);
+        copy.overlay_ = overlay_;
         return copy;
     }
 
@@ -271,6 +302,10 @@ public:
     [[nodiscard]] std::optional<std::vector<std::byte>>
     try_read(std::string_view name) const {
         if (failed_.contains(Archive::key(name))) return std::nullopt;
+        if (overlay_) {
+            const auto at = overlay_->tables.find(Archive::key(name));
+            if (at != overlay_->tables.end()) return at->second;
+        }
         try {
             return find(name);
         } catch (const std::exception& error) {
@@ -307,6 +342,13 @@ private:
         }
         return std::nullopt;
     }
+
+    struct OverlayState {
+        overlay::Overlay set;
+        std::unordered_map<std::string, std::vector<std::byte>> tables;   // merged bytes by Archive::key
+        std::unordered_map<std::string, std::size_t> added;
+    };
+    std::shared_ptr<const OverlayState> overlay_;   // shared with reopen()ed copies; immutable
 
     std::vector<Archive> archives_;
     std::vector<std::pair<std::filesystem::path, bool>> sources_;   // what was pushed: path, installer
